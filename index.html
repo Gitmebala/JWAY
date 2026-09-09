@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="app.css?v=162830">
+<link rel="stylesheet" href="app.css?v=163629">
 </head>
 <body>
 
@@ -26,8 +26,8 @@
 <div id="map" aria-label="JKUAT Juja campus map"></div>
 
 <div class="card search" id="searchCard">
+  <canvas id="metal" aria-hidden="true"></canvas>
   <div class="brand">
-    <canvas id="metal" aria-hidden="true"></canvas>
     <h1>JWAY</h1>
     <span class="tag">JKUAT <b>Juja</b></span>
     <button class="iconBtn" id="voiceBtn" title="Spoken directions" aria-pressed="true">
@@ -36,11 +36,6 @@
         <path class="wave1" d="M16.5 8.5a5 5 0 0 1 0 7"/>
         <path class="wave2" d="M19 6a8.5 8.5 0 0 1 0 12"/>
         <path class="slash" d="M3 3l18 18"/>
-      </svg>
-    </button>
-    <button class="iconBtn" id="aboutBtn" title="About JWAY" aria-label="About JWAY">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r=".9"/>
       </svg>
     </button>
     <button class="ghost" id="layerBtn">Satellite</button>
@@ -76,7 +71,7 @@
   <div class="grab"><span></span></div>
   <div class="sheetBody" id="sheetBody"></div>
   <div class="credit">
-    Made by <b>Bala</b> &middot; <span id="creditData">open campus data</span>
+    Made by <b>Bala</b>
   </div>
 </div>
 
@@ -135,45 +130,9 @@
   </form>
 </dialog>
 
-<dialog id="about">
-  <form method="dialog">
-    <div class="dh">
-      <h3>JWAY</h3>
-      <p>Walking directions across JKUAT's Juja campus — down to the room, spoken aloud
-         so you can keep your head up and your phone in your pocket.</p>
-    </div>
-    <div class="db aboutBody">
-      <div class="statRow" id="aboutStats"></div>
-
-      <h4>Using it while you walk</h4>
-      <ul>
-        <li>Tap <b>&#9678;</b> to start from where you're standing.</li>
-        <li>Say it instead of typing — the mic takes "take me to ELB 212".</li>
-        <li>Hit <b>Start</b> and pocket the phone. It announces every turn, buzzes,
-            and holds the screen awake until you arrive.</li>
-        <li>Room codes carry their own floor: <code>CTC 207</code> is the 2nd floor,
-            <code>CTC 105</code> the 1st, <code>CTC 03</code> the ground.</li>
-      </ul>
-
-      <h4>Where the data comes from</h4>
-      <p class="fine">Buildings, footpaths, street names and points of interest come from
-        <b>OpenStreetMap</b> contributors, licensed ODbL, filled out with a public JKUAT
-        ArcGIS survey — the two agreed to within 4&ndash;16&nbsp;m, which is how they were
-        checked against each other. Room codes were harvested from JKUAT's own published
-        exam timetables. Satellite imagery is Esri World Imagery.</p>
-      <p class="fine">CTC's block is unnamed in OpenStreetMap, so its location came from
-        someone who walks past it. Adding it upstream would make that permanent for
-        every map, not just this one.</p>
-
-      <h4>Credits</h4>
-      <p class="fine">Made by <b>Bala</b>.</p>
-    </div>
-    <div class="df"><button value="ok" class="pri">Close</button></div>
-  </form>
-</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="data/campus.js?v=162830"></script>
-<script src="app.js?v=162830"></script>
+<script src="data/campus.js?v=163629"></script>
+<script src="app.js?v=163629"></script>
 </body>
 </html>

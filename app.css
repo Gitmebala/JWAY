@@ -81,23 +81,21 @@ button,input,select,textarea{font:inherit;color:inherit}
   border:1px solid var(--line);
 }
 .search{top:12px;left:12px;width:384px;max-width:calc(100vw - 24px);
-  padding:0 0 12px;overflow:hidden}
+  padding:0 0 12px;overflow:hidden;position:fixed;isolation:isolate}
+/* the liquid runs under the entire card; everything else floats on the glass */
+.search > *:not(#metal){position:relative;z-index:1}
 @media (max-width:860px){.search{width:auto;right:12px}}
 
 /* header with the liquid-metal plate behind the wordmark */
 .brand{
   position:relative;display:flex;align-items:center;gap:10px;
-  padding:13px 14px 12px;overflow:hidden;
-  border-bottom:1px solid var(--line-soft);
+  padding:13px 14px 12px;
+  border-bottom:1px solid rgba(255,255,255,.08);
 }
 #metal{
-  position:absolute;inset:0;width:100%;height:100%;display:block;
-  opacity:.42;pointer-events:none;
-  /* let the chrome pool behind the wordmark and dissolve across the bar */
-  -webkit-mask-image:linear-gradient(100deg,#000 0%,#000 34%,rgba(0,0,0,.45) 62%,transparent 88%);
-  mask-image:linear-gradient(100deg,#000 0%,#000 34%,rgba(0,0,0,.45) 62%,transparent 88%);
+  position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0;
+  opacity:.55;pointer-events:none;
 }
-.brand > *{position:relative;z-index:1}
 .brand h1{
   margin:0;font-family:Archivo,sans-serif;font-weight:700;font-size:25px;
   letter-spacing:-.025em;line-height:1;
@@ -135,8 +133,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .ghost:hover{color:var(--ink)}
 
 /* ---------------- inputs ---------------- */
-.fields{margin:12px 14px 0;background:var(--sunk);border:1px solid var(--line);
-  border-radius:13px;overflow:visible}
+.fields{margin:12px 14px 0;border-radius:13px;overflow:visible;
+  background:color-mix(in srgb,var(--sunk) 72%,transparent);
+  border:1px solid color-mix(in srgb,var(--line) 70%,transparent);
+  -webkit-backdrop-filter:blur(9px) saturate(1.25);backdrop-filter:blur(9px) saturate(1.25)}
 .field{position:relative;display:flex;align-items:center;gap:10px;padding:0 8px 0 12px}
 .field input{flex:1;min-width:0;background:none;border:none;padding:12px 0;
   font-size:15.5px;font-weight:500}
@@ -405,9 +405,10 @@ dialog::backdrop{background:rgba(6,9,14,.6)}
 .chips::-webkit-scrollbar{display:none}
 .chip{
   flex:none;display:inline-flex;align-items:center;gap:6px;
-  background:var(--metal);border:1px solid var(--line);border-radius:999px;
+  background:color-mix(in srgb,var(--surface) 62%,transparent);
+  border:1px solid color-mix(in srgb,var(--line) 65%,transparent);border-radius:999px;
   padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-2);
-  white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+  white-space:nowrap;-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
 }
 .chip:hover{color:var(--ink);border-color:var(--ink-3)}
 .chip.recent{background:none;box-shadow:none;color:var(--ink-3);font-weight:500}
@@ -438,25 +439,3 @@ dialog::backdrop{background:rgba(6,9,14,.6)}
 .navThen b{color:var(--accent-lift);font-weight:600}
 .awake{color:var(--accent-lift);opacity:.9}
 
-/* ================= about ================= */
-.aboutBody h4{
-  margin:6px 0 0;font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--ink-3);
-}
-.aboutBody ul{margin:0;padding-left:19px;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
-.aboutBody li{margin:4px 0}
-.aboutBody li b{color:var(--ink)}
-.aboutBody .fine{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
-.aboutBody code{
-  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink);
-  background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:0 4px;
-}
-.aboutBody a{color:var(--accent-deep);text-decoration:underline}
-@media (prefers-color-scheme:dark){.aboutBody a{color:var(--accent-lift)}}
-.statRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.stat{background:var(--sunk);border:1px solid var(--line);border-radius:11px;
-  padding:10px 8px;text-align:center}
-.stat i{display:block;font-style:normal;font-family:Archivo,sans-serif;font-weight:700;
-  font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums}
-.stat span{display:block;font-family:"IBM Plex Mono",monospace;font-size:8.5px;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:3px}

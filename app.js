@@ -1046,9 +1046,10 @@ locate(ok => { if (ok) route(); });
 map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds()); });
 
 /* ---------- liquid metal ----------
-   A low-resolution metaball field, shaded from its own gradient so the blobs
-   read as poured chrome rather than flat shapes. Two instances: a wide plate
-   for the opening screen, a slim one behind the wordmark. */
+   A metaball field shaded as chrome. Two things make it read as liquid rather
+   than as grey fog: the blobs are merged at a low threshold so they grow necks
+   as they approach, and the surface is shaded from a hard-banded environment
+   ramp with a specular hit, which is what actually makes metal look like metal. */
 function makeMetal(id, opt) {
   const cv = document.getElementById(id);
   if (!cv) return null;
@@ -1060,15 +1061,28 @@ function makeMetal(id, opt) {
   const img = octx.createImageData(GW, GH);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* Each blob drifts on its own slow ellipse. Overlapping orbits make them
+     pool together and pull apart continuously, which random walks never do. */
   const balls = [];
   for (let i = 0; i < N; i++) {
-    balls.push({ x: Math.random() * GW, y: Math.random() * GH,
-      vx: (Math.random() - 0.5) * opt.speed,
-      vy: (Math.random() - 0.5) * opt.speed * 0.55,
-      r: opt.r0 + Math.random() * opt.r1 });
+    balls.push({
+      cx: (0.12 + 0.76 * Math.random()) * GW,
+      cy: (0.15 + 0.70 * Math.random()) * GH,
+      ax: GW * (0.10 + Math.random() * 0.22),
+      ay: GH * (0.10 + Math.random() * 0.26),
+      ph: Math.random() * Math.PI * 2,
+      sp: (0.16 + Math.random() * 0.24) * (Math.random() < 0.5 ? -1 : 1),
+      r: opt.r0 + Math.random() * opt.r1
+    });
   }
-  const RAMP = [[0,236,240,247],[0.34,150,160,175],[0.46,52,60,74],[0.54,96,106,122],
-                [0.68,214,222,232],[0.84,120,130,146],[1,246,248,252]];
+
+  /* Chrome is a hard horizon: bright sky, a near-black band, then a bright
+     floor. Soft grey gradients look like smoke; these steps look like metal. */
+  const RAMP = [
+    [0.00, 255, 255, 255], [0.14, 226, 231, 238], [0.30, 138, 146, 157],
+    [0.44,  16,  19,  24], [0.52,  40,  46,  54], [0.60, 176, 184, 194],
+    [0.72, 250, 251, 253], [0.85, 116, 124, 134], [1.00, 240, 244, 249]
+  ];
   function ramp(t) {
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     for (let i = 1; i < RAMP.length; i++) {
@@ -1078,9 +1092,14 @@ function makeMetal(id, opt) {
         return [a[1] + (b[1]-a[1])*k, a[2] + (b[2]-a[2])*k, a[3] + (b[3]-a[3])*k];
       }
     }
-    return [246, 248, 252];
+    return [240, 244, 249];
   }
+
   const field = new Float32Array(GW * GH);
+  const TH = opt.th || 0.62;           // low, so neighbours fuse into necks
+  const IRID = opt.irid == null ? 0 : opt.irid;
+  const TAU = Math.PI * 2;
+
   function size() {
     const r = cv.getBoundingClientRect();
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -1090,14 +1109,13 @@ function makeMetal(id, opt) {
   size();
   addEventListener('resize', size);
 
-  let raf = 0, alive = true;
-  function frame() {
+  let raf = 0, alive = true, t0 = performance.now();
+  function frame(now) {
     if (!alive) return;
+    const t = ((now || performance.now()) - t0) / 1000;
     for (const b of balls) {
-      b.x += b.vx; b.y += b.vy;
-      if (b.x < -8) b.x = GW + 8;
-      if (b.x > GW + 8) b.x = -8;
-      if (b.y < -5 || b.y > GH + 5) b.vy *= -1;
+      b.x = b.cx + Math.cos(t * b.sp + b.ph) * b.ax;
+      b.y = b.cy + Math.sin(t * b.sp * 1.31 + b.ph * 1.7) * b.ay;
     }
     for (let y = 0; y < GH; y++) {
       for (let x = 0; x < GW; x++) {
@@ -1113,13 +1131,33 @@ function makeMetal(id, opt) {
     for (let y = 0; y < GH; y++) {
       for (let x = 0; x < GW; x++) {
         const i = y * GW + x, v = field[i];
-        const a = v < 0.85 ? 0 : Math.min(1, (v - 0.85) * 2.2);
-        if (a <= 0) { d[i*4+3] = 0; continue; }
+        if (v < TH) { d[i*4+3] = 0; continue; }
+        const a = Math.min(1, (v - TH) * 6);        // crisp liquid edge
         const gx = field[i + (x < GW-1 ? 1 : 0)] - field[i - (x > 0 ? 1 : 0)];
         const gy = field[i + (y < GH-1 ? GW : 0)] - field[i - (y > 0 ? GW : 0)];
-        const c = ramp(0.5 + gy * 0.9 + gx * 0.22);
-        d[i*4] = c[0]; d[i*4+1] = c[1]; d[i*4+2] = c[2];
-        d[i*4+3] = a * 235;
+        const g = Math.sqrt(gx*gx + gy*gy) + 1e-6;
+        const nx = gx / g, ny = gy / g;
+        const c = ramp(0.5 + ny * 0.60 + nx * 0.16);
+        /* specular from a light above and to the left */
+        let sp = -ny * 0.78 - nx * 0.58;
+        sp = sp > 0 ? Math.pow(sp, 7) * 240 : 0;
+        let R = c[0] + sp, G = c[1] + sp, Bl = c[2] + sp;
+        if (IRID > 0) {
+          /* thin-film iridescence: the hue turns with the surface angle and
+             drifts with time, so the sheen rolls red -> green -> blue */
+          const hp = ny * 0.42 + nx * 0.26 + t * 0.075;
+          const ir = 0.5 + 0.5 * Math.cos(TAU * hp);
+          const ig = 0.5 + 0.5 * Math.cos(TAU * (hp + 0.3333));
+          const ib = 0.5 + 0.5 * Math.cos(TAU * (hp + 0.6667));
+          const lum = (R + G + Bl) / 3;
+          R += (lum * (0.35 + 1.25 * ir) - R) * IRID;
+          G += (lum * (0.35 + 1.25 * ig) - G) * IRID;
+          Bl += (lum * (0.35 + 1.25 * ib) - Bl) * IRID;
+        }
+        d[i*4]   = R < 0 ? 0 : R > 255 ? 255 : R;
+        d[i*4+1] = G < 0 ? 0 : G > 255 ? 255 : G;
+        d[i*4+2] = Bl < 0 ? 0 : Bl > 255 ? 255 : Bl;
+        d[i*4+3] = a * 244;
       }
     }
     octx.putImageData(img, 0, 0);
@@ -1132,18 +1170,19 @@ function makeMetal(id, opt) {
   frame();
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) cancelAnimationFrame(raf);
-    else if (!reduce && alive) frame();
+    else if (!reduce && alive) { t0 = performance.now(); frame(); }
   });
   return { stop() { alive = false; cancelAnimationFrame(raf); } };
 }
-makeMetal('metal', { gw: 88, gh: 26, balls: 6, speed: 0.09, r0: 4.5, r1: 4.5 });
+makeMetal('metal', { gw: 132, gh: 84, balls: 9, r0: 9, r1: 7,
+                     squash: 1.05, th: 0.58, irid: 0.72 });
 
 /* opening plate — bigger, slower, then it drains away */
 (function splash() {
   const el = document.getElementById('splash');
   if (!el) return;
   const inst = makeMetal('splashMetal',
-    { gw: 208, gh: 122, balls: 7, speed: 0.20, r0: 7, r1: 8, squash: 1.02 });
+    { gw: 176, gh: 104, balls: 8, r0: 11, r1: 9, squash: 1.02, th: 0.58, irid: 0.6 });
   let done = false;
   function dismiss() {
     if (done) return;
@@ -1260,18 +1299,6 @@ function shareLink() {
   } else toast(url);
 }
 
-/* ---------- about ---------- */
-document.getElementById('aboutBtn').onclick = () => {
-  const placed = ROOMS.filter(r => r.bid).length;
-  document.getElementById('aboutStats').innerHTML =
-    `<div class="stat"><i>${B.length}</i><span>places</span></div>` +
-    `<div class="stat"><i>${(D.streets || []).length}</i><span>streets</span></div>` +
-    `<div class="stat"><i>${placed}</i><span>rooms</span></div>` +
-    `<div class="stat"><i>${NODES.length}</i><span>path nodes</span></div>`;
-  document.getElementById('about').showModal();
-};
-document.getElementById('creditData').textContent =
-  B.length + ' places · ' + NODES.length + ' path nodes';
 
 renderChips();
 if (applyDeepLink()) { /* deep link wins over the default route */ }
