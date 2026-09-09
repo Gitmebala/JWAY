@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#C2521B">
+<meta name="theme-color" content="#9B0C23">
 <title>JWAY — JKUAT Campus Wayfinder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="app.css?v=151942">
+<link rel="stylesheet" href="app.css?v=160313">
 </head>
 <body>
 
@@ -17,8 +17,9 @@
 
 <div class="card search" id="searchCard">
   <div class="brand">
+    <canvas id="metal" aria-hidden="true"></canvas>
     <h1>JWAY</h1>
-    <span class="tag">JKUAT Juja</span>
+    <span class="tag">JKUAT <b>Juja</b></span>
     <button class="iconBtn" id="voiceBtn" title="Spoken directions" aria-pressed="true">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 9v6h4l5 4V5L8 9H4z"/>
@@ -67,6 +68,7 @@
     </div>
     <button class="navExit" id="navExit" title="Stop" aria-label="Stop navigating">&times;</button>
   </div>
+  <div class="navProg"><i id="navProgBar"></i></div>
   <div class="navFoot">
     <span id="navRemain">—</span><span class="navSep"></span><span id="navEta">—</span>
     <button class="recenter" id="recenter">Re-center</button>
@@ -110,7 +112,7 @@
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="data/campus.js?v=151942"></script>
-<script src="app.js?v=151942"></script>
+<script src="data/campus.js?v=160313"></script>
+<script src="app.js?v=160313"></script>
 </body>
 </html>

@@ -282,7 +282,7 @@ document.getElementById('layerBtn').onclick = () => {
   document.querySelectorAll('.bldTip,.stTip').forEach(e => e.classList.toggle('lite', !satOn));
 };
 
-L.polygon(D.campus.map(p => [p[1], p[0]]), { color: '#F0A57A', weight: 2, opacity: .5,
+L.polygon(D.campus.map(p => [p[1], p[0]]), { color: '#7FD4EE', weight: 2, opacity: .38,
   dashArray: '9 7', fill: false, interactive: false }).addTo(map);
 
 /* ---------- the walking network itself ---------- */
@@ -306,11 +306,11 @@ const stLabelLayer = L.layerGroup().addTo(map);
     }
   }
   // dark casing first so light paths read against pale ground
-  L.polyline(plain.concat(named), { color: '#241708', weight: 5.5, opacity: .38,
+  L.polyline(plain.concat(named), { color: '#04222E', weight: 5.5, opacity: .42,
     lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(pathLayer);
-  L.polyline(plain, { color: '#FBEEDD', weight: 2, opacity: .7, dashArray: '5 4',
+  L.polyline(plain, { color: '#DCEEF6', weight: 2, opacity: .65, dashArray: '5 4',
     lineCap: 'round', interactive: false }).addTo(pathLayer);
-  L.polyline(named, { color: '#FFF6EA', weight: 3.4, opacity: .92,
+  L.polyline(named, { color: '#EAF6FC', weight: 3.4, opacity: .9,
     lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(pathLayer);
 
   // one label per street, on its longest run
@@ -334,15 +334,18 @@ const stLabelLayer = L.layerGroup().addTo(map);
 const bLayer = L.layerGroup().addTo(map);
 const shapeOf = {};
 for (const b of B) {
-  const POI_COLOR = { Gate: '#8FD1C0', Sport: '#9CC96B', Green: '#7FB77E', Food: '#F4C15D',
-                      Shop: '#F4C15D', Health: '#F58B8B', Money: '#F4C15D', Venue: '#C7A8F2' };
+  const POI_COLOR = { Gate: '#5FD3C4', Sport: '#8ECF5C', Green: '#6FBF7A', Food: '#E8B33C',
+                      Shop: '#E8B33C', Health: '#EF6A72', Money: '#E8B33C', Venue: '#B08BE8',
+                      Admin: '#009FD4', Support: '#009FD4', Library: '#009FD4' };
   const isPoi = b.ring.length <= 2 && b.cat && b.cat !== 'Building';
+  /* Footprints stay invisible - the satellite already shows the buildings.
+     They remain on the map purely as tap targets. */
   const shape = b.ring.length > 2
     ? L.polygon(b.ring.map(p => [p[1], p[0]]),
-        { color: '#F2C9A8', weight: 1, opacity: .8, fillColor: '#E8A87C', fillOpacity: .16 })
+        { stroke: false, fillOpacity: 0, fillColor: '#000', interactive: true })
     : L.circleMarker([b.lat, b.lon], isPoi
-        ? { radius: 5, color: '#fff', weight: 1.6, fillColor: POI_COLOR[b.cat] || '#8FD1C0', fillOpacity: .95 }
-        : { radius: 7, color: '#F2C9A8', weight: 2, fillColor: '#E8A87C', fillOpacity: .3 });
+        ? { radius: 5, color: '#fff', weight: 1.6, fillColor: POI_COLOR[b.cat] || '#5FD3C4', fillOpacity: .95 }
+        : { radius: 6, color: '#fff', weight: 1.5, fillColor: '#9B0C23', fillOpacity: .85 });
   shape.on('click', () => openBuilding(b));
   shape.addTo(bLayer); shapeOf[b.id] = shape;
   const a = b.area || 0;
@@ -422,15 +425,20 @@ function fitRoute(bounds, tries) {
 function drawRoute(pts, from, to, fit) {
   [routeLine, routeCase, mkA, mkB].forEach(l => l && map.removeLayer(l));
   const path = pts.map(ll);
-  routeCase = L.polyline(path, { color: '#3A1607', weight: 11, opacity: .55,
+  routeCase = L.polyline(path, { color: '#04222E', weight: 12, opacity: .6,
     lineCap: 'round', lineJoin: 'round' }).addTo(map);
-  routeLine = L.polyline(path, { color: '#F2762E', weight: 6,
+  routeLine = L.polyline(path, { color: '#19C6FA', weight: 6,
     lineCap: 'round', lineJoin: 'round' }).addTo(map);
-  mkA = L.marker([from.lat, from.lon], { icon: pin('A', '#2E6A4C') }).addTo(map);
-  mkB = L.marker([to.lat, to.lon], { icon: pin('B', '#C2521B') }).addTo(map);
-  Object.values(shapeOf).forEach(s => s.setStyle && s.setStyle({ weight: 1, color: '#F2C9A8' }));
-  if (shapeOf[to.id] && shapeOf[to.id].setStyle)
-    shapeOf[to.id].setStyle({ weight: 3, color: '#F2762E', fillColor: '#F2762E', fillOpacity: .32 });
+  mkA = L.marker([from.lat, from.lon], { icon: pin('A', '#009FD4') }).addTo(map);
+  mkB = L.marker([to.lat, to.lon], { icon: pin('B', '#9B0C23') }).addTo(map);
+  for (const b of B) {
+    const sh = shapeOf[b.id];
+    if (sh && sh.setStyle && b.ring.length > 2) sh.setStyle({ stroke: false, fillOpacity: 0 });
+  }
+  const selShape = shapeOf[to.id];
+  if (selShape && selShape.setStyle && to.ring && to.ring.length > 2)
+    selShape.setStyle({ stroke: true, color: '#19C6FA', weight: 2.5, opacity: .95,
+                        fillColor: '#19C6FA', fillOpacity: .18 });
   if (fit !== false) fitRoute(routeLine.getBounds());
 }
 
@@ -921,6 +929,8 @@ function updateNav() {
 
   rEl.textContent = remaining < 1000 ? `${Math.round(remaining/5)*5} m left` : `${(remaining/1000).toFixed(2)} km left`;
   eEl.textContent = clock(new Date(Date.now() + secsFor(remaining) * 1000));
+  const bar = document.getElementById('navProgBar');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, (1 - remaining / total) * 100)) + '%';
 }
 
 /* ---------- room editor ---------- */
@@ -993,3 +1003,92 @@ locate(ok => { if (ok) route(); });
 
 /* one last fit once the map reports ready, in case boot raced the layout */
 map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds()); });
+
+/* ---------- liquid metal ----------
+   A low-resolution metaball field, shaded from its own gradient so the blobs
+   read as poured chrome rather than flat shapes. Cheap enough to run forever. */
+(function liquidMetal() {
+  const cv = document.getElementById('metal');
+  if (!cv) return;
+  const ctx = cv.getContext('2d', { alpha: true });
+  const GW = 88, GH = 26;
+  const off = document.createElement('canvas');
+  off.width = GW; off.height = GH;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(GW, GH);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const balls = [];
+  for (let i = 0; i < 6; i++) {
+    balls.push({ x: Math.random() * GW, y: Math.random() * GH,
+      vx: (Math.random() - 0.5) * 0.09, vy: (Math.random() - 0.5) * 0.05,
+      r: 4.5 + Math.random() * 4.5 });
+  }
+  const RAMP = [[0,236,240,247],[0.34,150,160,175],[0.46,52,60,74],[0.54,96,106,122],
+                [0.68,214,222,232],[0.84,120,130,146],[1,246,248,252]];
+  function ramp(t) {
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    for (let i = 1; i < RAMP.length; i++) {
+      if (t <= RAMP[i][0]) {
+        const a = RAMP[i-1], b = RAMP[i];
+        const k = (t - a[0]) / ((b[0] - a[0]) || 1);
+        return [a[1] + (b[1]-a[1])*k, a[2] + (b[2]-a[2])*k, a[3] + (b[3]-a[3])*k];
+      }
+    }
+    return [246, 248, 252];
+  }
+  const field = new Float32Array(GW * GH);
+
+  function size() {
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+  }
+  size();
+  addEventListener('resize', size);
+
+  let raf = 0;
+  function frame() {
+    for (const b of balls) {
+      b.x += b.vx; b.y += b.vy;
+      if (b.x < -6) b.x = GW + 6;
+      if (b.x > GW + 6) b.x = -6;
+      if (b.y < -4 || b.y > GH + 4) b.vy *= -1;
+    }
+    for (let y = 0; y < GH; y++) {
+      for (let x = 0; x < GW; x++) {
+        let v = 0;
+        for (const b of balls) {
+          const dx = x - b.x, dy = (y - b.y) * 1.7;
+          v += (b.r * b.r) / (dx * dx + dy * dy + 1);
+        }
+        field[y * GW + x] = v;
+      }
+    }
+    const d = img.data;
+    for (let y = 0; y < GH; y++) {
+      for (let x = 0; x < GW; x++) {
+        const i = y * GW + x, v = field[i];
+        const a = v < 0.85 ? 0 : Math.min(1, (v - 0.85) * 2.2);
+        if (a <= 0) { d[i*4+3] = 0; continue; }
+        const gx = field[i + (x < GW-1 ? 1 : 0)] - field[i - (x > 0 ? 1 : 0)];
+        const gy = field[i + (y < GH-1 ? GW : 0)] - field[i - (y > 0 ? GW : 0)];
+        const c = ramp(0.5 + gy * 0.9 + gx * 0.22);
+        d[i*4] = c[0]; d[i*4+1] = c[1]; d[i*4+2] = c[2];
+        d[i*4+3] = a * 235;
+      }
+    }
+    octx.putImageData(img, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, cv.width, cv.height);
+    if (!reduce) raf = requestAnimationFrame(frame);
+  }
+  frame();
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) cancelAnimationFrame(raf);
+    else if (!reduce) frame();
+  });
+})();
