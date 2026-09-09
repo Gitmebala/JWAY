@@ -282,7 +282,7 @@ document.getElementById('layerBtn').onclick = () => {
   document.querySelectorAll('.bldTip,.stTip').forEach(e => e.classList.toggle('lite', !satOn));
 };
 
-L.polygon(D.campus.map(p => [p[1], p[0]]), { color: '#7FD4EE', weight: 2, opacity: .38,
+L.polygon(D.campus.map(p => [p[1], p[0]]), { color: '#D8C79B', weight: 2, opacity: .34,
   dashArray: '9 7', fill: false, interactive: false }).addTo(map);
 
 /* ---------- the walking network itself ---------- */
@@ -306,11 +306,11 @@ const stLabelLayer = L.layerGroup().addTo(map);
     }
   }
   // dark casing first so light paths read against pale ground
-  L.polyline(plain.concat(named), { color: '#04222E', weight: 5.5, opacity: .42,
+  L.polyline(plain.concat(named), { color: '#140F06', weight: 5.5, opacity: .42,
     lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(pathLayer);
-  L.polyline(plain, { color: '#DCEEF6', weight: 2, opacity: .65, dashArray: '5 4',
+  L.polyline(plain, { color: '#EFE9DA', weight: 2, opacity: .6, dashArray: '5 4',
     lineCap: 'round', interactive: false }).addTo(pathLayer);
-  L.polyline(named, { color: '#EAF6FC', weight: 3.4, opacity: .9,
+  L.polyline(named, { color: '#F6F1E4', weight: 3.4, opacity: .88,
     lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(pathLayer);
 
   // one label per street, on its longest run
@@ -334,9 +334,9 @@ const stLabelLayer = L.layerGroup().addTo(map);
 const bLayer = L.layerGroup().addTo(map);
 const shapeOf = {};
 for (const b of B) {
-  const POI_COLOR = { Gate: '#5FD3C4', Sport: '#8ECF5C', Green: '#6FBF7A', Food: '#E8B33C',
-                      Shop: '#E8B33C', Health: '#EF6A72', Money: '#E8B33C', Venue: '#B08BE8',
-                      Admin: '#009FD4', Support: '#009FD4', Library: '#009FD4' };
+  const POI_COLOR = { Gate: '#B8B2A2', Sport: '#A8B78C', Green: '#94A886', Food: '#E0A11B',
+                      Shop: '#D2B378', Health: '#CFC3AC', Money: '#D9BE72', Venue: '#BDB4A4',
+                      Admin: '#AFB0AC', Support: '#AFB0AC', Library: '#AFB0AC' };
   const isPoi = b.ring.length <= 2 && b.cat && b.cat !== 'Building';
   /* Footprints stay invisible - the satellite already shows the buildings.
      They remain on the map purely as tap targets. */
@@ -344,8 +344,8 @@ for (const b of B) {
     ? L.polygon(b.ring.map(p => [p[1], p[0]]),
         { stroke: false, fillOpacity: 0, fillColor: '#000', interactive: true })
     : L.circleMarker([b.lat, b.lon], isPoi
-        ? { radius: 5, color: '#fff', weight: 1.6, fillColor: POI_COLOR[b.cat] || '#5FD3C4', fillOpacity: .95 }
-        : { radius: 6, color: '#fff', weight: 1.5, fillColor: '#9B0C23', fillOpacity: .85 });
+        ? { radius: 5, color: '#fff', weight: 1.6, fillColor: POI_COLOR[b.cat] || '#B8B2A2', fillOpacity: .95 }
+        : { radius: 6, color: '#fff', weight: 1.5, fillColor: '#8A8D91', fillOpacity: .85 });
   shape.on('click', () => openBuilding(b));
   shape.addTo(bLayer); shapeOf[b.id] = shape;
   const a = b.area || 0;
@@ -425,20 +425,20 @@ function fitRoute(bounds, tries) {
 function drawRoute(pts, from, to, fit) {
   [routeLine, routeCase, mkA, mkB].forEach(l => l && map.removeLayer(l));
   const path = pts.map(ll);
-  routeCase = L.polyline(path, { color: '#04222E', weight: 12, opacity: .6,
+  routeCase = L.polyline(path, { color: '#160F03', weight: 12, opacity: .62,
     lineCap: 'round', lineJoin: 'round' }).addTo(map);
-  routeLine = L.polyline(path, { color: '#19C6FA', weight: 6,
+  routeLine = L.polyline(path, { color: '#FFC02E', weight: 6,
     lineCap: 'round', lineJoin: 'round' }).addTo(map);
-  mkA = L.marker([from.lat, from.lon], { icon: pin('A', '#009FD4') }).addTo(map);
-  mkB = L.marker([to.lat, to.lon], { icon: pin('B', '#9B0C23') }).addTo(map);
+  mkA = L.marker([from.lat, from.lon], { icon: pin('A', '#4A4E54') }).addTo(map);
+  mkB = L.marker([to.lat, to.lon], { icon: pin('B', '#E0A11B') }).addTo(map);
   for (const b of B) {
     const sh = shapeOf[b.id];
     if (sh && sh.setStyle && b.ring.length > 2) sh.setStyle({ stroke: false, fillOpacity: 0 });
   }
   const selShape = shapeOf[to.id];
   if (selShape && selShape.setStyle && to.ring && to.ring.length > 2)
-    selShape.setStyle({ stroke: true, color: '#19C6FA', weight: 2.5, opacity: .95,
-                        fillColor: '#19C6FA', fillOpacity: .18 });
+    selShape.setStyle({ stroke: true, color: '#FFC02E', weight: 2.5, opacity: .95,
+                        fillColor: '#FFC02E', fillOpacity: .16 });
   if (fit !== false) fitRoute(routeLine.getBounds());
 }
 
