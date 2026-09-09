@@ -369,3 +369,94 @@ dialog::backdrop{background:rgba(6,9,14,.6)}
   padding:11px 18px;border-radius:11px;font-size:14px;z-index:990;
   box-shadow:var(--shadow-lg);max-width:calc(100vw - 40px);text-align:center}
 .toast[hidden]{display:none!important}
+
+/* ================= opening plate ================= */
+#splash{
+  position:fixed;inset:0;z-index:2000;background:#0C0D0F;
+  display:grid;place-items:center;overflow:hidden;
+  transition:opacity .7s ease,visibility .7s;
+}
+#splash.gone{opacity:0;visibility:hidden;pointer-events:none}
+#splashMetal{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:.92}
+/* darken the middle so the wordmark sits on the metal rather than in it */
+#splash::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 62% 46% at 50% 50%,
+    rgba(10,11,13,.9) 0%,rgba(10,11,13,.55) 45%,rgba(10,11,13,0) 78%);
+}
+.splashInner{position:relative;z-index:2;text-align:center;padding:0 24px}
+.splashWord{
+  font-family:Archivo,sans-serif;font-weight:800;font-size:clamp(52px,15vw,104px);
+  letter-spacing:-.045em;line-height:.92;
+  background:var(--chrome);-webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(255,255,255,.28)) drop-shadow(0 10px 30px rgba(0,0,0,.85));
+}
+.splashSub{
+  margin-top:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;
+  letter-spacing:.36em;text-transform:uppercase;color:#8C8F93;
+}
+
+/* ================= nearest-of-a-kind chips ================= */
+.chips{
+  display:flex;gap:7px;overflow-x:auto;padding:11px 14px 2px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;display:inline-flex;align-items:center;gap:6px;
+  background:var(--metal);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-2);
+  white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+}
+.chip:hover{color:var(--ink);border-color:var(--ink-3)}
+.chip.recent{background:none;box-shadow:none;color:var(--ink-3);font-weight:500}
+.chip.recent:hover{color:var(--accent)}
+.chipLbl{
+  flex:none;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);align-self:center;padding-right:2px;
+}
+
+/* ================= credit ================= */
+.credit{
+  flex:none;padding:9px 17px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line-soft);background:var(--surface-2);
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);display:flex;gap:6px;
+}
+.credit b{
+  color:transparent;font-weight:700;
+  background:var(--chrome);-webkit-background-clip:text;background-clip:text;
+}
+
+/* ================= next-turn preview ================= */
+.navThen{
+  padding:7px 15px;background:rgba(0,0,0,.24);font-size:12.5px;
+  color:rgba(255,255,255,.72);display:flex;align-items:center;gap:7px;
+}
+.navThen[hidden]{display:none!important}
+.navThen b{color:var(--accent-lift);font-weight:600}
+.awake{color:var(--accent-lift);opacity:.9}
+
+/* ================= about ================= */
+.aboutBody h4{
+  margin:6px 0 0;font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);
+}
+.aboutBody ul{margin:0;padding-left:19px;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.aboutBody li{margin:4px 0}
+.aboutBody li b{color:var(--ink)}
+.aboutBody .fine{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.aboutBody code{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink);
+  background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:0 4px;
+}
+.aboutBody a{color:var(--accent-deep);text-decoration:underline}
+@media (prefers-color-scheme:dark){.aboutBody a{color:var(--accent-lift)}}
+.statRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--sunk);border:1px solid var(--line);border-radius:11px;
+  padding:10px 8px;text-align:center}
+.stat i{display:block;font-style:normal;font-family:Archivo,sans-serif;font-weight:700;
+  font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums}
+.stat span{display:block;font-family:"IBM Plex Mono",monospace;font-size:8.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:3px}

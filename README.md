@@ -20,7 +20,12 @@ is genuinely hard and no existing map routes across the campus footpaths.
   walk off in it.
 - **Directions with landmarks and streets** — "Turn right onto Science Street at
   NSC Cafeteria, passing JKUAT Library on your left".
-- Satellite and street basemaps, decluttered labels, live GPS navigation.
+- **Nearest of a kind** — one tap for the closest mess, cafeteria, hostel, gym,
+  gate, shop or hospital, ranked by walking distance rather than straight line.
+- **Holds the screen awake** while navigating, so it does not die in your pocket.
+- **Shareable links** — `?to=CTC%20207` opens straight into a route, so a link in
+  a group chat lands someone on the directions.
+- Recent destinations, satellite and street basemaps, decluttered labels.
 
 ## Running it locally
 

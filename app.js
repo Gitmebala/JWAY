@@ -557,6 +557,7 @@ function setDestination(it) {
   if (it.kind === 'room') { TO = { bld: it.bld, room: it.room }; toInp.value = it.room.code; }
   else { TO = { bld: it.bld, room: null }; toInp.value = it.bld.name; }
   route();
+  if (typeof pushRecent === 'function') pushRecent(toInp.value);
 }
 document.getElementById('swapBtn').onclick = () => {
   if (!FROM || !TO || !TO.bld) return;
@@ -744,6 +745,7 @@ function route(fit) {
   }
   h += `</ul><div class="rowline">
       <button class="rowbtn" id="addBtn">Edit rooms</button>
+      <button class="rowbtn" id="shareBtn">Share this route</button>
       <button class="rowbtn" id="gmapsBtn">Open in Google Maps</button>
     </div>`;
   sheetBody.innerHTML = h;
@@ -774,6 +776,7 @@ function wireSheet() {
   const g = document.getElementById('gmapsBtn');
   if (g) g.onclick = () => open(`https://www.google.com/maps/dir/?api=1&origin=${FROM.lat},${FROM.lon}` +
     `&destination=${TO.bld.lat},${TO.bld.lon}&travelmode=walking`, '_blank');
+  const sh = document.getElementById('shareBtn'); if (sh) sh.onclick = shareLink;
   const s = document.getElementById('startNav'); if (s) s.onclick = startNav;
   sheetBody.querySelectorAll('[data-edit]').forEach(b =>
     b.onclick = () => openDialog(b.getAttribute('data-edit')));
@@ -797,6 +800,32 @@ function openBuilding(b) {
 const navBar = document.getElementById('navBar');
 let navOn = false, followMe = true, spoken = {}, lastOffAnnounce = 0, arrived = false;
 
+/* Walking navigation is useless if the screen sleeps in your pocket.
+   Hold a wake lock for as long as we are actually navigating. */
+let wakeLock = null;
+async function holdScreen() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      const el = document.getElementById('navAwake');
+      if (el) el.hidden = false;
+      wakeLock.addEventListener('release', () => {
+        const e2 = document.getElementById('navAwake');
+        if (e2) e2.hidden = true;
+      });
+    }
+  } catch (e) { /* denied or unsupported — navigation still works */ }
+}
+function releaseScreen() {
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  wakeLock = null;
+  const el = document.getElementById('navAwake');
+  if (el) el.hidden = true;
+}
+document.addEventListener('visibilitychange', () => {
+  if (navOn && !document.hidden && !wakeLock) holdScreen();
+});
+
 function startNav() {
   if (!ROUTE) return;
   if (!navigator.geolocation) return toast('This device has no GPS.');
@@ -805,6 +834,7 @@ function startNav() {
   document.getElementById('searchCard').classList.add('hidden');
   document.getElementById('sheet').classList.add('mini');
   initCompass();                                  // gesture-gated on iOS — we're inside a click
+  holdScreen();
   const first = STEPS[0];
   speak(`Starting. ${first.voice}. ${Math.round(ROUTE.meters)} metres, about ${humanTime(secsFor(ROUTE.meters))}.`, true);
   watchId = navigator.geolocation.watchPosition(p => {
@@ -821,6 +851,7 @@ function stopNav() {
   document.getElementById('searchCard').classList.remove('hidden');
   document.getElementById('sheet').classList.remove('mini');
   if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  releaseScreen();
   synth && synth.cancel();
 }
 document.getElementById('navExit').onclick = stopNav;
@@ -900,6 +931,16 @@ function updateNav() {
   dEl.textContent = toTurn < 12 ? 'Now' : `${Math.round(toTurn / 5) * 5} m`;
   iEl.textContent = instr.voice;
   svg.innerHTML = ICONS[instr.icon] || ICONS.straight;
+
+  /* what comes after this turn, so you can plan a step ahead */
+  const thenEl = document.getElementById('navThen');
+  const after = STEPS[STEPS.indexOf(instr) + 1];
+  if (thenEl) {
+    if (after && after !== instr) {
+      thenEl.hidden = false;
+      thenEl.innerHTML = 'then <b>' + escapeHtml(after.voice) + '</b>';
+    } else thenEl.hidden = true;
+  }
 
   /* facing the wrong way? only worth saying at the very start */
   let facing = '';
@@ -1006,12 +1047,13 @@ map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds());
 
 /* ---------- liquid metal ----------
    A low-resolution metaball field, shaded from its own gradient so the blobs
-   read as poured chrome rather than flat shapes. Cheap enough to run forever. */
-(function liquidMetal() {
-  const cv = document.getElementById('metal');
-  if (!cv) return;
+   read as poured chrome rather than flat shapes. Two instances: a wide plate
+   for the opening screen, a slim one behind the wordmark. */
+function makeMetal(id, opt) {
+  const cv = document.getElementById(id);
+  if (!cv) return null;
   const ctx = cv.getContext('2d', { alpha: true });
-  const GW = 88, GH = 26;
+  const GW = opt.gw, GH = opt.gh, N = opt.balls, SQUASH = opt.squash || 1.7;
   const off = document.createElement('canvas');
   off.width = GW; off.height = GH;
   const octx = off.getContext('2d');
@@ -1019,10 +1061,11 @@ map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds());
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const balls = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < N; i++) {
     balls.push({ x: Math.random() * GW, y: Math.random() * GH,
-      vx: (Math.random() - 0.5) * 0.09, vy: (Math.random() - 0.5) * 0.05,
-      r: 4.5 + Math.random() * 4.5 });
+      vx: (Math.random() - 0.5) * opt.speed,
+      vy: (Math.random() - 0.5) * opt.speed * 0.55,
+      r: opt.r0 + Math.random() * opt.r1 });
   }
   const RAMP = [[0,236,240,247],[0.34,150,160,175],[0.46,52,60,74],[0.54,96,106,122],
                 [0.68,214,222,232],[0.84,120,130,146],[1,246,248,252]];
@@ -1038,7 +1081,6 @@ map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds());
     return [246, 248, 252];
   }
   const field = new Float32Array(GW * GH);
-
   function size() {
     const r = cv.getBoundingClientRect();
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -1048,19 +1090,20 @@ map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds());
   size();
   addEventListener('resize', size);
 
-  let raf = 0;
+  let raf = 0, alive = true;
   function frame() {
+    if (!alive) return;
     for (const b of balls) {
       b.x += b.vx; b.y += b.vy;
-      if (b.x < -6) b.x = GW + 6;
-      if (b.x > GW + 6) b.x = -6;
-      if (b.y < -4 || b.y > GH + 4) b.vy *= -1;
+      if (b.x < -8) b.x = GW + 8;
+      if (b.x > GW + 8) b.x = -8;
+      if (b.y < -5 || b.y > GH + 5) b.vy *= -1;
     }
     for (let y = 0; y < GH; y++) {
       for (let x = 0; x < GW; x++) {
         let v = 0;
         for (const b of balls) {
-          const dx = x - b.x, dy = (y - b.y) * 1.7;
+          const dx = x - b.x, dy = (y - b.y) * SQUASH;
           v += (b.r * b.r) / (dx * dx + dy * dy + 1);
         }
         field[y * GW + x] = v;
@@ -1089,6 +1132,146 @@ map.whenReady(() => { fixSize(); if (routeLine) fitRoute(routeLine.getBounds());
   frame();
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) cancelAnimationFrame(raf);
-    else if (!reduce) frame();
+    else if (!reduce && alive) frame();
   });
+  return { stop() { alive = false; cancelAnimationFrame(raf); } };
+}
+makeMetal('metal', { gw: 88, gh: 26, balls: 6, speed: 0.09, r0: 4.5, r1: 4.5 });
+
+/* opening plate — bigger, slower, then it drains away */
+(function splash() {
+  const el = document.getElementById('splash');
+  if (!el) return;
+  const inst = makeMetal('splashMetal',
+    { gw: 208, gh: 122, balls: 7, speed: 0.20, r0: 7, r1: 8, squash: 1.02 });
+  let done = false;
+  function dismiss() {
+    if (done) return;
+    done = true;
+    el.classList.add('gone');
+    setTimeout(function () { inst && inst.stop(); el.remove(); }, 800);
+  }
+  setTimeout(dismiss, 2100);
+  el.addEventListener('pointerdown', dismiss);
+  addEventListener('keydown', dismiss, { once: true });
 })();
+
+
+/* ---------- recent destinations ---------- */
+const LS_RECENT = 'jway.recent.v1';
+let RECENT = load(LS_RECENT, []);
+function pushRecent(label) {
+  if (!label) return;
+  RECENT = [label].concat(RECENT.filter(r => r !== label)).slice(0, 5);
+  save(LS_RECENT, RECENT);
+  renderChips();
+}
+
+/* ---------- nearest place of a kind ----------
+   One Dijkstra from where you are, then read the distance off each candidate.
+   Far cheaper than routing to every mess on campus in turn. */
+const KINDS = [
+  { label: 'Mess',      test: b => /mess/i.test(b.name) },
+  { label: 'Cafeteria', test: b => b.cat === 'Food' || /cafeteria|bakery/i.test(b.name) },
+  { label: 'Library',   test: b => /library/i.test(b.name) },
+  { label: 'Hostel',    test: b => /^Hall \d/i.test(b.name) },
+  { label: 'Gym',       test: b => /gym/i.test(b.name) },
+  { label: 'Sport',     test: b => b.cat === 'Sport' },
+  { label: 'Shop',      test: b => b.cat === 'Shop' },
+  { label: 'Hospital',  test: b => /hospital|pharmacy/i.test(b.name) },
+  { label: 'Gate',      test: b => b.cat === 'Gate' }
+];
+function nearestOf(test) {
+  if (!FROM) return null;
+  const A = attach(FROM.x, FROM.y);
+  const { dist } = dijkstraMulti([[A.u, A.dU], [A.v, A.dV]]);
+  let best = null, bd = Infinity;
+  for (const b of B) {
+    if (!test(b)) continue;
+    const d = (dist[b.node] || Infinity) + (b.snap || 0);
+    if (d < bd) { bd = d; best = b; }
+  }
+  return best ? { bld: best, meters: bd } : null;
+}
+function renderChips() {
+  const box = document.getElementById('chips');
+  if (!box) return;
+  box.textContent = '';
+  const lbl = document.createElement('span');
+  lbl.className = 'chipLbl'; lbl.textContent = 'Nearest';
+  box.append(lbl);
+  for (const k of KINDS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = k.label;
+    b.onclick = () => {
+      const hit = nearestOf(k.test);
+      if (!hit) { toast('Nothing of that kind on the walking network.'); return; }
+      TO = { bld: hit.bld, room: null };
+      toInp.value = hit.bld.name;
+      route(); pushRecent(hit.bld.name);
+      toast(`Nearest ${k.label.toLowerCase()}: ${hit.bld.name}`);
+    };
+    box.append(b);
+  }
+  if (RECENT.length) {
+    const l2 = document.createElement('span');
+    l2.className = 'chipLbl'; l2.textContent = 'Recent';
+    box.append(l2);
+    for (const r of RECENT) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip recent'; b.textContent = r;
+      b.onclick = () => {
+        const hit = searchAll(r)[0];
+        if (hit) { setDestination(hit); }
+      };
+      box.append(b);
+    }
+  }
+}
+
+/* ---------- shareable links ----------
+   ?to=CTC%20207 (and optionally &from=Hall%204) opens straight into a route,
+   so a link in a group chat lands someone on the directions. */
+function applyDeepLink() {
+  const q = new URLSearchParams(location.search);
+  const to = q.get('to'), from = q.get('from');
+  let changed = false;
+  if (from) {
+    const hit = searchAll(from)[0];
+    if (hit && hit.bld) { FROM = asPlace(hit.bld); fromInp.value = hit.bld.name; changed = true; }
+  }
+  if (to) {
+    const hit = searchAll(to)[0];
+    if (hit) { setDestination(hit); changed = true; }
+  }
+  return changed;
+}
+function shareLink() {
+  if (!TO) return;
+  const label = TO.room ? TO.room.code : TO.bld.name;
+  const url = location.origin + location.pathname + '?to=' + encodeURIComponent(label);
+  if (navigator.share) {
+    navigator.share({ title: 'JWAY — ' + label, text: 'Directions to ' + label, url })
+      .catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url)
+      .then(() => toast('Link copied — paste it to whoever is lost.'))
+      .catch(() => toast(url));
+  } else toast(url);
+}
+
+/* ---------- about ---------- */
+document.getElementById('aboutBtn').onclick = () => {
+  const placed = ROOMS.filter(r => r.bid).length;
+  document.getElementById('aboutStats').innerHTML =
+    `<div class="stat"><i>${B.length}</i><span>places</span></div>` +
+    `<div class="stat"><i>${(D.streets || []).length}</i><span>streets</span></div>` +
+    `<div class="stat"><i>${placed}</i><span>rooms</span></div>` +
+    `<div class="stat"><i>${NODES.length}</i><span>path nodes</span></div>`;
+  document.getElementById('about').showModal();
+};
+document.getElementById('creditData').textContent =
+  B.length + ' places · ' + NODES.length + ' path nodes';
+
+renderChips();
+if (applyDeepLink()) { /* deep link wins over the default route */ }
