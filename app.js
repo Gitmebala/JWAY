@@ -436,19 +436,56 @@ function drawRoute(pts, from, to, fit) {
 
 /* ---------- search ---------- */
 const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+/* Room codes in these blocks encode their own floor: a three-digit code
+   starts with the floor (CTC 207 -> 2nd), anything shorter is ground level
+   (CTC 03). So we can resolve a code nobody has ever recorded. */
+const CODE_PREFIX = ['CTC', 'ELB', 'HRD', 'NSC', 'CLB', 'NCLB', 'SCC', 'EMB'];
+function prefixBuilding(pre) {
+  const n = norm(pre);
+  const hit = ROOMS.find(r => r.bid && norm(r.code).startsWith(n + ' '))
+           || ROOMS.find(r => r.bid && norm(r.code) === n);
+  return hit ? hit.bid : null;
+}
+function deriveRoom(q) {
+  const m = norm(q).match(/^([a-z]{2,4})\s*(\d{1,3})([a-z])?$/);
+  if (!m) return null;
+  const pre = CODE_PREFIX.find(p => p.toLowerCase() === m[1]);
+  if (!pre) return null;
+  const bid = prefixBuilding(pre);
+  if (!bid) return null;
+  const num = m[2], suffix = (m[3] || '').toUpperCase();
+  const code = `${pre} ${num}${suffix}`;
+  if (ROOMS.some(r => norm(r.code) === norm(code))) return null;   // already known
+  return { code, bid, floor: num.length === 3 ? +num[0] : 0,
+           wing: '', hint: '', src: 'derived' };
+}
+
 function searchAll(q) {
   const n = norm(q); if (!n) return [];
+  const nq = n.replace(/\s+/g, '');
+  /* people type "ctc105" as often as "CTC 105" — spacing must not matter */
+  const score = (hay) => {
+    const sq = hay.replace(/\s+/g, '');
+    let best = -1;
+    for (const [h, needle] of [[hay, n], [sq, nq]]) {
+      const t = h === needle ? 0 : h.startsWith(needle) ? 1 : h.includes(needle) ? 2 : -1;
+      if (t >= 0 && (best < 0 || t < best)) best = t;
+    }
+    return best;
+  };
   const out = [];
   for (const r of ROOMS) {
-    const nn = norm(r.code);
-    const sc = nn === n ? 0 : nn.startsWith(n) ? 1 : nn.includes(n) ? 2 : -1;
+    const sc = score(norm(r.code));
     if (sc < 0) continue;
     out.push({ sc, kind: 'room', room: r, label: r.code, bld: r.bid ? bldById(r.bid) : null });
   }
+  const derived = deriveRoom(q);
+  if (derived) out.push({ sc: 0.2, kind: 'room', room: derived, label: derived.code,
+                          bld: bldById(derived.bid) });
   for (const b of B) {
     let sc = -1;
     for (const h of [norm(b.name), ...(b.alias || []).map(norm)]) {
-      const s = h === n ? 0 : h.startsWith(n) ? 1 : h.includes(n) ? 2 : -1;
+      const s = score(h);
       if (s >= 0 && (sc < 0 || s < sc)) sc = s;
     }
     if (sc < 0) continue;
@@ -469,8 +506,9 @@ function wireSearch(inputId, boxId, onPick) {
         b.innerHTML = `<span class="code"></span><span class="nm"></span><span class="meta${it.bld?'':' unmapped'}"></span>`;
         b.querySelector('.code').textContent = it.room.code;
         b.querySelector('.nm').textContent = it.bld ? it.bld.name : 'location unknown';
+        const fl = it.room.floor ? 'floor ' + it.room.floor : 'ground';
         b.querySelector('.meta').textContent = it.bld
-          ? (it.room.floor ? 'floor ' + it.room.floor : 'ground') : 'unplaced';
+          ? (it.room.src === 'derived' ? fl + ' ?' : fl) : 'unplaced';
       } else {
         b.innerHTML = `<span class="nm"></span><span class="meta"></span>`;
         b.querySelector('.nm').textContent = it.bld.name;

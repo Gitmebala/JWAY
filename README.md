@@ -58,14 +58,19 @@ Everything is openly licensed. No proprietary map data is embedded.
 
 Attribution is displayed on the map, as ODbL requires. Keep it there.
 
-### A known gap
+### Room codes
 
-`CTC` (Common Teaching Complex) and the `PAM` labs appear on JKUAT timetables,
-but no public source records where those buildings physically stand — not OSM,
-not the ArcGIS layer, not Nominatim, Photon, Wikimapia, or Google Maps. Rather
-than guess and send someone to the wrong building, JWAY marks those rooms as
-location-not-confirmed. Adding them to OpenStreetMap is the clean fix: it makes
-the data free for JWAY and for every other map.
+Codes in the main teaching blocks encode their own floor: a three-digit code
+starts with the floor it is on (`CTC 207` -> 2nd floor, `CTC 105` -> 1st), and a
+shorter code is ground level (`CTC 03`). JWAY applies that rule live, so a room
+nobody has ever recorded still resolves — `CTC 312` routes to the right building
+and tells you the 3rd floor, flagged as inferred.
+
+`CTC` is the COHRED block beside the HRD building. Its footprints are unnamed in
+OpenStreetMap, so its location came from local knowledge rather than a public
+dataset — [adding it to OSM](https://www.openstreetmap.org/) would make that
+permanent for everyone. The `PAM` labs are in the New Science Complex, which
+houses the College of Pure and Applied Sciences.
 
 ## Contributing campus data
 
