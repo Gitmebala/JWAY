@@ -1,0 +1,8 @@
+# superseded standalone prototype (kept locally, not part of the app)
+jway.html
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+node_modules/
